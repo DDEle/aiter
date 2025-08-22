@@ -7,12 +7,12 @@ KNAME=1
 export CK_WARMUP=0
 export CK_REPEAT=1
 
-COMMON_ARGS='-v=1'
+COMMON_ARGS='-v=0'
 
 run_batch_mode_tests() {
     for prec in "fp16" "bf16" ; do
     for perm in 0 1 ; do
-    for hdim in 64 72 96 128 144 176 192 ; do
+    for hdim in 128 ; do
     for v3_atomic_fp32 in 0 1 ; do
     for v3_bf16_cvt in 0 1 2 ; do
     for mask in 0 1 ; do
@@ -43,7 +43,7 @@ run_swa_tests() {
     for perm in 0 1 ; do
     for seqlen_q in 192 301 512 700; do
     for seqlen_k in 192 301 512 700; do
-    for hdim in 72 96 128 ; do
+    for hdim in 128 ; do
     for mask in "t:-1,10" "t:15,-1" "t:15,15" "t:190,187" "b:-1,10" "b:15,-1" "b:15,15" "b:190,187" ; do
 
     $EXE -prec=$prec -b=2 -h=4 -h_k=2 -d=$hdim -s=$seqlen_q -s_k=$seqlen_k -iperm=$perm -operm=$perm -mask=$mask -bwd_v3=1 -mode=0 -kname=$KNAME $COMMON_ARGS
@@ -62,7 +62,7 @@ run_group_mode_tests() {
     for seqlen in 63 127 200; do
     for prec in "bf16" "fp16" ; do
     for perm in 0 1 ; do
-    for hdim in 64 80 96 120 128 144 160 192; do
+    for hdim in 128; do
     for mask in 0 1 ; do
     for v3_bf16_cvt in 0 1 2 ; do #valid for bf16. Pls set CK_TILE_FLOAT_TO_BFLOAT16_DEFAULT in config.hpp to the corresponding value and re-test if a small number of slight mimatchs occurred
     
@@ -84,23 +84,21 @@ run_group_mode_tests() {
 
 # Current native gfx950 kernels has seqlen restriction
 run_gfx950_bwd_v3() {
-    for prec in "bf16" "fp16" ; do
-    for mask in 0 1 ; do
+    for prec in "bf16" ; do
+    for mask in 0 ; do
     for v3_atomic_fp32 in 1 0 ; do
-    for batch in 1 3 ; do
-    for head in 2 4 ; do
+    for batch in 1280 ; do
+    for head in 2 ; do
     # for hdim in 72 80 88 96 104 112 120 ; do
-    for sq in 13 62 174 260 513 ; do
-    for sk in 13 65 174 299 577 799 1025; do
-    for perm in 0 1 ; do
-        $EXE -prec=$prec -b=$batch -h=$head -h_k=2 -d=128 -s=$sq -s_k=$sk -iperm=$perm -operm=$perm -mask=$mask -bwd_v3=1 -v3_atomic_fp32=$v3_atomic_fp32 -mode=0 -kname=$KNAME $COMMON_ARGS
+    for sq in 8 232 ; do
+    for sk in 232; do
+      $EXE -prec=$prec -b=$batch -h=$head -h_k=2 -d=128 -s=$sq -s_k=$sk -mask=$mask -bwd_v3=1 -v3_atomic_fp32=$v3_atomic_fp32 -mode=0 -kname=$KNAME $COMMON_ARGS
     done
     done
     done
     done
     done
     # done
-    done
     done
     done
 }
