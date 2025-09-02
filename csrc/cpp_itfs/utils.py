@@ -194,8 +194,6 @@ def compile_lib(src_file, folder, includes=None, sources=None, cxxflags=None):
                 "-mllvm -amdgpu-early-inline-all=true",
                 "-mllvm -amdgpu-function-calls=false",
             ]
-        if hip_version > Version("6.2.41133"):
-            cxxflags += ["-mllvm -amdgpu-coerce-illegal-types=1"]
         archs = validate_and_update_archs()
         cxxflags += [f"--offload-arch={arch}" for arch in archs]
         makefile_file = makefile_template.render(
