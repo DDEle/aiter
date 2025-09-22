@@ -40,15 +40,17 @@ PREBUILD_KERNELS = int(os.environ.get("PREBUILD_KERNELS", 0))
 
 def getMaxJobs():
     # calculate the maximum allowed NUM_JOBS based on cores
-    max_num_jobs_cores = max(1, os.cpu_count() * 0.8)
+    max_num_jobs_cores = max(1, os.cpu_count())
     import psutil
 
     # calculate the maximum allowed NUM_JOBS based on free memory
     free_memory_gb = psutil.virtual_memory().available / (1024**3)  # free memory in GB
+    print(f"Free memory: {free_memory_gb:.2f} GB")
     max_num_jobs_memory = int(free_memory_gb / 0.5)  # assuming 0.5 GB per job
 
     # pick lower value of jobs based on cores vs memory metric to minimize oom and swap usage during compilation
     max_jobs = int(max(1, min(max_num_jobs_cores, max_num_jobs_memory)))
+    print(f"Setting MAX_JOBS to {max_jobs}")
     return max_jobs
 
 
@@ -76,7 +78,7 @@ if IS_ROCM:
     ), 'CK is needed by aiter, please make sure clone by "git clone --recursive https://github.com/ROCm/aiter.git" or "git submodule sync ; git submodule update --init --recursive"'
 
     if PREBUILD_KERNELS == 1:
-        exclude_ops = [
+        include_ops = [
             "libmha_fwd",
             "libmha_bwd",
             "module_fmha_v3_fwd",
@@ -91,7 +93,7 @@ if IS_ROCM:
         ]
 
         all_opts_args_build, prebuild_link_param = core.get_args_of_build(
-            "all", exclude=exclude_ops
+            "all", include=include_ops
         )
         os.system(f"rm -rf {core.get_user_jit_dir()}/build")
         os.system(f"rm -rf {core.get_user_jit_dir()}/*.so")
@@ -117,7 +119,7 @@ if IS_ROCM:
             )
 
         # step 1, build *.cu -> module*.so
-        prebuid_thread_num = 5
+        prebuid_thread_num = int(os.environ.get("PREBUILD_THREAD_NUM", "5"))
         prebuid_thread_num = min(prebuid_thread_num, getMaxJobs())
         max_jobs = os.environ.get("MAX_JOBS")
         if max_jobs != None and max_jobs.isdigit():
@@ -193,6 +195,7 @@ class NinjaBuildExtension(BuildExtension):
         # none value
         else:
             os.environ["MAX_JOBS"] = str(max_jobs)
+        print(f"MAX_JOBS used in ninja build: {os.environ['MAX_JOBS']}")
 
         super().__init__(*args, **kwargs)
 

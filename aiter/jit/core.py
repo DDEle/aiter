@@ -164,7 +164,7 @@ def hip_flag_checker(flag_hip: str) -> bool:
 
 
 def check_and_set_ninja_worker():
-    max_num_jobs_cores = max(1, os.cpu_count() * 0.8)
+    max_num_jobs_cores = max(1, os.cpu_count())
     import psutil
 
     # calculate the maximum allowed NUM_JOBS based on free memory
@@ -460,7 +460,7 @@ def build_module(
     mp_lock(lockPath=lock_path, MainFunc=MainFunc, FinalFunc=FinalFunc)
 
 
-def get_args_of_build(ops_name: str, exclude=[]):
+def get_args_of_build(ops_name: str, exclude=[], include=[]):
     d_opt_build_args = {
         "srcs": [],
         "md_name": "",
@@ -513,6 +513,8 @@ def get_args_of_build(ops_name: str, exclude=[]):
                         continue
                     # exclude
                     if ops_name in exclude:
+                        continue
+                    if len(include) > 0 and ops_name not in include:
                         continue
                     single_ops = convert(d_ops)
                     d_single_ops = {

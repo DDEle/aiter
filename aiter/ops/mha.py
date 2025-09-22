@@ -8,6 +8,9 @@ from ..jit.utils.chip_info import get_gfx
 from ..jit.utils.torch_guard import torch_compile_guard
 from ..utility import dtypes
 import torch
+import os
+
+AITER_MHA_NO_ASM = bool(os.environ.get("AITER_MHA_NO_ASM", "0"))
 
 
 def cmdGenFunc_mha_fwd(
@@ -481,7 +484,6 @@ def gen_fmha_v3_varlen_fwd_fake_tensor(
     alibi_slopes: Optional[torch.Tensor] = None,
     gen: Optional[torch.Generator] = None,
 ) -> List[torch.Tensor]:
-
     device = q.device
     dtype = q.dtype
 
@@ -1074,7 +1076,6 @@ def _flash_attn_forward(
     return_lse: bool,
     return_softmax: bool,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-
     (_, seqlen_q, nhead_q, hdim_q) = q.shape
     (_, seqlen_k, nhead_k, hdim_v) = v.shape
 
@@ -1086,6 +1087,8 @@ def _flash_attn_forward(
     swa = (window_size_left > 0) or (window_size_right > 0)
 
     def can_impl_fmha_v3_fwd():
+        if AITER_MHA_NO_ASM:
+            return False
         # basic
         gfx = get_gfx()
         ret = alibi_slopes is None
@@ -1155,6 +1158,8 @@ def can_impl_fmha_v3_bwd(
     deterministic: bool,
     is_v3_atomic_fp32: Optional[bool] = True,
 ) -> bool:
+    if AITER_MHA_NO_ASM:
+        return False
     (_, seqlen_q, nhead_q, hdim_q) = q.shape
     (_, seqlen_k, nhead_k, hdim_v) = v.shape
 
@@ -1655,7 +1660,6 @@ def _flash_attn_varlen_forward(
     out: Optional[torch.Tensor] = None,
     zero_tensors: bool = False,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-
     (_, nhead_q, hdim_q) = q.shape
 
     nhead_k = v.shape[-2]
@@ -1670,6 +1674,8 @@ def _flash_attn_varlen_forward(
     swa = (window_size_left > 0) or (window_size_right > 0)
 
     def can_impl_fmha_v3_fwd():
+        if AITER_MHA_NO_ASM:
+            return False
         # basic
         gfx = get_gfx()
         ret = alibi_slopes is None
@@ -1770,7 +1776,6 @@ def _flash_attn_varlen_backward(
     how_v3_bf16_cvt: Optional[int] = 1,
     zero_tensors: bool = False,
 ) -> torch.Tensor:
-
     (_, nhead_q, hdim_q) = q.shape
 
     nhead_k = v.shape[-2]
@@ -1831,6 +1836,8 @@ def _flash_attn_varlen_backward(
         return ret
 
     def can_impl_fmha_v3_bwd():
+        if AITER_MHA_NO_ASM:
+            return False
         # basic
         ret = alibi_slopes is None
         # ret &= bias is None
@@ -2293,7 +2300,6 @@ def _mha_batch_prefill(
     zero_tensors: bool = False,
     out: torch.Tensor = None,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-
     q, k, v = [maybe_contiguous(x) for x in (q, k, v)]
     out, softmax_lse, S_dmask, rng_state = mha_batch_prefill(
         q,
