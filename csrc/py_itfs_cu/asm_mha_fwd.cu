@@ -280,7 +280,7 @@ std::vector<at::Tensor> fmha_v3_fwd(at::Tensor &q, // [b, sq, hq, d]
     if (seqlen_k > 0) {
         auto drop_seed_offset = std::make_pair(rng_state_ptr, rng_state_ptr + 1);
         auto stream = at::cuda::getCurrentHIPStream().stream();
-        ck_tile::stream_config stream_config{stream};
+        ck_tile::stream_config stream_config{stream, true, 1};
 
         auto args =
             get_asm_fmha_fwd_args(

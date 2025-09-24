@@ -347,7 +347,8 @@ std::vector<at::Tensor> fmha_v3_bwd(const at::Tensor &dout,         // [b, sq, h
     if (seqlen_q > 0) {
         auto rng_state_ptr = reinterpret_cast<uint64_t*>(rng_state.data_ptr());
         auto drop_seed_offset = std::make_pair(rng_state_ptr, rng_state_ptr + 1);
-        ck_tile::stream_config stream_config{stream};
+        // ck_tile::stream_config stream_config{stream};
+        ck_tile::stream_config stream_config{stream, true, 1};
 
         auto args =
             get_asm_fmha_bwd_args(
@@ -388,6 +389,7 @@ std::vector<at::Tensor> fmha_v3_bwd(const at::Tensor &dout,         // [b, sq, h
                                  is_v3_atomic_fp32,
                                  how_v3_bf16_cvt);
         TORCH_CHECK(t >= 0, "invalid argument for fmha_v3_bwd");
+        std::cout << "\nfmha_bwd ASM time: " << t << " ms " << std::endl;
     } else {
         // If seqlen_q == 0, then we have an empty tensor. We need to set the output to 0.
         dk_expanded.zero_();

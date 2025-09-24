@@ -277,6 +277,7 @@ def test_flash_attn_output(
     print(f"Output max diff: {(out - out_ref).abs().max().item()}")
     print(f"Output Pytorch max diff: {(out_pt - out_ref).abs().max().item()}")
     out_tol = max(2 * (out_pt - out_ref).abs().max().item(), 0.01)
+    print(out_ref)
     assert (out - out_ref).abs().max().item() <= out_tol
 
     print(f"dQ max diff: {(dq - dq_ref).abs().max().item()}")
